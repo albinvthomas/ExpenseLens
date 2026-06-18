@@ -19,10 +19,17 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.DATABASE_URL:
             # Render provides postgres:// and Neon provides postgresql:// which asyncpg needs as postgresql+asyncpg://
-            if self.DATABASE_URL.startswith("postgres://"):
-                return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-            elif self.DATABASE_URL.startswith("postgresql://") and "asyncpg" not in self.DATABASE_URL:
-                return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+            url = self.DATABASE_URL
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif url.startswith("postgresql://") and "asyncpg" not in url:
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+                
+            # asyncpg crashes if it sees sslmode=require (it uses ssl=require instead, or defaults to secure)
+            if "?sslmode=require" in url:
+                url = url.replace("?sslmode=require", "")
+                
+            return url
             # If they provide sqlite:// add aiosqlite
             if self.DATABASE_URL.startswith("sqlite://") and "aiosqlite" not in self.DATABASE_URL:
                 return self.DATABASE_URL.replace("sqlite://", "sqlite+aiosqlite://", 1)
