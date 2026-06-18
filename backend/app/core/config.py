@@ -25,9 +25,11 @@ class Settings(BaseSettings):
             elif url.startswith("postgresql://") and "asyncpg" not in url:
                 url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
                 
-            # asyncpg crashes if it sees sslmode=require (it uses ssl=require instead, or defaults to secure)
+            # asyncpg uses ssl=require instead of sslmode=require
             if "?sslmode=require" in url:
-                url = url.replace("?sslmode=require", "")
+                url = url.replace("?sslmode=require", "?ssl=require")
+            elif "&sslmode=require" in url:
+                url = url.replace("&sslmode=require", "&ssl=require")
                 
             return url
             # If they provide sqlite:// add aiosqlite
