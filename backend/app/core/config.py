@@ -25,11 +25,11 @@ class Settings(BaseSettings):
             elif url.startswith("postgresql://") and "asyncpg" not in url:
                 url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
                 
-            # asyncpg uses ssl=require instead of sslmode=require
-            if "?sslmode=require" in url:
-                url = url.replace("?sslmode=require", "?ssl=require")
-            elif "&sslmode=require" in url:
-                url = url.replace("&sslmode=require", "&ssl=require")
+            # Neon and Render sometimes include query params like ?sslmode=require or ?options=endpoint=...
+            # asyncpg strictly rejects many of these (like channel_binding, sslmode, options, etc).
+            # Since database.py explicitly sets connect_args={"ssl": True}, we can safely strip the entire query string!
+            if "?" in url:
+                url = url.split("?")[0]
                 
             return url
             # If they provide sqlite:// add aiosqlite
