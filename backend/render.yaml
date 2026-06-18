@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: expenselens-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expenselens-db
+          property: connectionString
+
+databases:
+  - name: expenselens-db
+    databaseName: expenselens
+    user: expenselens_user
+    plan: free
