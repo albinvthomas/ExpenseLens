@@ -23,12 +23,4 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: expenselens-db
-          property: connectionString
-
-databases:
-  - name: expenselens-db
-    databaseName: expenselens
-    user: expenselens_user
-    plan: free
+        sync: false # User must paste their Neon.tech connection string here
