@@ -1,40 +1,46 @@
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 
 def send_otp_email(to_email: str, otp: str):
-    smtp_host = os.environ.get("SMTP_HOST")
-    smtp_port = os.environ.get("SMTP_PORT")
-    smtp_user = os.environ.get("SMTP_USER")
-    smtp_pass = os.environ.get("SMTP_PASS")
+    resend.api_key = os.environ.get("RESEND_API_KEY")
     
-    if not all([smtp_host, smtp_port, smtp_user, smtp_pass]):
-        print(f"\n{'='*50}\nWARNING: SMTP credentials not set. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
-        return
+    if not resend.api_key:
+        print(f"\n{'='*50}\nWARNING: RESEND_API_KEY not set. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
+        return None
 
-    msg = MIMEMultipart()
-    msg['From'] = smtp_user
-    msg['To'] = to_email
-    msg['Subject'] = "Your ExpenseLens Verification Code"
-
-    body = f"""
-    Welcome to ExpenseLens!
-    
-    Your email verification code is: {otp}
-    
-    This code will expire in 10 minutes.
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #111827;">Welcome to ExpenseLens</h2>
+        </div>
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 20px;">Hello,</p>
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px;">Please use the following verification code to securely log in to your account. This code will expire in 10 minutes.</p>
+            <div style="text-align: center; margin-bottom: 30px;">
+                <span style="display: inline-block; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #10b981; background-color: #ecfdf5; padding: 15px 30px; border-radius: 8px; border: 2px dashed #34d399;">
+                    {otp}
+                </span>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; text-align: center;">If you didn't request this code, you can safely ignore this email.</p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
+            <p>&copy; 2026 ExpenseLens. All rights reserved.</p>
+        </div>
+    </div>
     """
-    msg.attach(MIMEText(body, 'plain'))
 
     try:
-        # Set a 3 second timeout so the UI doesn't hang if Render drops the network packets
-        server = smtplib.SMTP(smtp_host, int(smtp_port), timeout=3.0)
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.send_message(msg)
-        server.quit()
-        print(f"OTP email sent to {to_email}")
+        # Note: 'onboarding@resend.dev' allows sending emails to the registered Resend account email for testing.
+        params = {
+            "from": "ExpenseLens <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": "Your ExpenseLens Verification Code",
+            "html": html_content,
+        }
+
+        response = resend.Emails.send(params)
+        print(f"OTP email successfully sent to {to_email} via Resend. ID: {response}")
+        return response
     except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
-        print(f"\n{'='*50}\nOTP for {to_email}: {otp}\n{'='*50}\n")
+        print(f"Failed to send email to {to_email} via Resend: {str(e)}")
+        raise e

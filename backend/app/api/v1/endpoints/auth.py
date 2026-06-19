@@ -15,8 +15,10 @@ from datetime import datetime
 
 router = APIRouter()
 
+import asyncio
+
 @router.post("/request-otp")
-async def request_otp(req: OTPRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def request_otp(req: OTPRequest, db: AsyncSession = Depends(get_db)):
     user = await user_service.get_user_by_email(db, email=req.email)
     if user:
         raise HTTPException(status_code=400, detail="User already exists.")
@@ -39,9 +41,16 @@ async def request_otp(req: OTPRequest, background_tasks: BackgroundTasks, db: As
         
     await db.commit()
     
-    # Send email in the background so it never blocks the UI
-    background_tasks.add_task(send_otp_email, req.email, otp_code)
-    return {"message": "OTP sent successfully."}
+    # Send email synchronously but in a separate thread so it doesn't block the async event loop
+    try:
+        await asyncio.to_thread(send_otp_email, req.email, otp_code)
+        return {"message": "OTP sent successfully."}
+    except Exception as e:
+        # If Resend fails, we inform the user instead of failing silently
+        raise HTTPException(
+            status_code=500, 
+            detail="Failed to send OTP email. Please try again or check your email address."
+        )
 
 @router.post("/signup", response_model=UserResponse)
 async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
