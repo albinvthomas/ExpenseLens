@@ -28,7 +28,8 @@ def send_otp_email(to_email: str, otp: str):
     msg.attach(MIMEText(body, 'plain'))
 
     try:
-        server = smtplib.SMTP(smtp_host, int(smtp_port))
+        # Set a 3 second timeout so the UI doesn't hang if Render drops the network packets
+        server = smtplib.SMTP(smtp_host, int(smtp_port), timeout=3.0)
         server.starttls()
         server.login(smtp_user, smtp_pass)
         server.send_message(msg)
