@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +16,7 @@ from datetime import datetime
 router = APIRouter()
 
 @router.post("/request-otp")
-async def request_otp(req: OTPRequest, db: AsyncSession = Depends(get_db)):
+async def request_otp(req: OTPRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     user = await user_service.get_user_by_email(db, email=req.email)
     if user:
         raise HTTPException(status_code=400, detail="User already exists.")
@@ -39,8 +39,8 @@ async def request_otp(req: OTPRequest, db: AsyncSession = Depends(get_db)):
         
     await db.commit()
     
-    # Send email
-    send_otp_email(req.email, otp_code)
+    # Send email in the background so it never blocks the UI
+    background_tasks.add_task(send_otp_email, req.email, otp_code)
     return {"message": "OTP sent successfully."}
 
 @router.post("/signup", response_model=UserResponse)
