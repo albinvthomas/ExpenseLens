@@ -35,33 +35,8 @@ This application was built from the ground up using a modern, fully decoupled ar
 - **Provider:** Neon.tech (Serverless PostgreSQL)
 - **Architecture:** Relational database structured to handle users, categorized budgets, transactions, and secure OTP logs.
 
-## 🚀 Getting Started Locally
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/yourusername/ExpenseLens.git
-cd ExpenseLens
-```
-
-### 2. Setup the Backend (FastAPI)
-```bash
-cd backend
-python -m venv venv
-source venv/Scripts/activate  # On Windows
-pip install -r requirements.txt
-```
-*Create a `.env` file in the backend directory with your Neon `DATABASE_URL`, a `SECRET_KEY`, and `SMTP` variables.*
-```bash
-python -m app.main
-```
-
-### 3. Setup the Frontend (React)
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*The app will be running at `http://localhost:5173`.*
+## 🚀 Live Demo
+Experience the app in action here: **[https://expense-lens-eight.vercel.app/](https://expense-lens-eight.vercel.app/)**
 
 ---
 *Designed & Developed by Albin Thomas*
