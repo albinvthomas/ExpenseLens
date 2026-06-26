@@ -1,18 +1,11 @@
 import os
-import smtplib
-from email.message import EmailMessage
-from dotenv import load_dotenv
-
-load_dotenv()
+import resend
 
 def send_otp_email(to_email: str, otp: str):
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", 587))
-    smtp_user = os.environ.get("SMTP_USER")
-    smtp_pass = os.environ.get("SMTP_PASS")
-
-    if not smtp_user or not smtp_pass:
-        print(f"\n{'='*50}\nWARNING: SMTP credentials not set. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
+    resend.api_key = os.environ.get("RESEND_API_KEY")
+    
+    if not resend.api_key:
+        print(f"\n{'='*50}\nWARNING: RESEND_API_KEY not set. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
         return None
 
     html_content = f"""
@@ -36,21 +29,22 @@ def send_otp_email(to_email: str, otp: str):
     </div>
     """
 
-    msg = EmailMessage()
-    msg['Subject'] = "Your ExpenseLens Verification Code"
-    msg['From'] = f"ExpenseLens <{smtp_user}>"
-    msg['To'] = to_email
-    msg.set_content("Please use the following verification code: " + otp)
-    msg.add_alternative(html_content, subtype='html')
-
     try:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-        print(f"OTP email successfully sent to {to_email} via SMTP.")
-        return True
+        # Note: 'onboarding@resend.dev' allows sending emails to the registered Resend account email for testing.
+        params = {
+            "from": "ExpenseLens <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": "Your ExpenseLens Verification Code",
+            "html": html_content,
+        }
+
+        response = resend.Emails.send(params)
+        print(f"OTP email successfully sent to {to_email} via Resend. ID: {response}")
+        return response
     except Exception as e:
         error_msg = str(e)
-        print(f"Failed to send email to {to_email} via SMTP: {error_msg}")
+        print(f"Failed to send email to {to_email} via Resend: {error_msg}")
+        if "You can only send testing emails to your own email address" in error_msg:
+            print(f"\n{'='*50}\nBYPASS: Resend test mode detected. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
+            return None
         raise e
