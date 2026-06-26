@@ -1,11 +1,15 @@
 import os
-import resend
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def send_otp_email(to_email: str, otp: str):
-    resend.api_key = os.environ.get("RESEND_API_KEY")
+    brevo_api_key = os.environ.get("BREVO_API_KEY")
+    sender_email = os.environ.get("SMTP_USER", "albinvthomas089@gmail.com")
     
-    if not resend.api_key:
-        print(f"\n{'='*50}\nWARNING: RESEND_API_KEY not set. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
+    if not brevo_api_key:
+        print(f"\n{'='*50}\nWARNING: BREVO_API_KEY not set. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
         return None
 
     html_content = f"""
@@ -29,22 +33,41 @@ def send_otp_email(to_email: str, otp: str):
     </div>
     """
 
-    try:
-        # Note: 'onboarding@resend.dev' allows sending emails to the registered Resend account email for testing.
-        params = {
-            "from": "ExpenseLens <onboarding@resend.dev>",
-            "to": [to_email],
-            "subject": "Your ExpenseLens Verification Code",
-            "html": html_content,
-        }
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": brevo_api_key,
+        "content-type": "application/json"
+    }
+    payload = {
+        "sender": {
+            "name": "ExpenseLens",
+            "email": sender_email
+        },
+        "to": [
+            {
+                "email": to_email
+            }
+        ],
+        "subject": "Your ExpenseLens Verification Code",
+        "htmlContent": html_content
+    }
 
-        response = resend.Emails.send(params)
-        print(f"OTP email successfully sent to {to_email} via Resend. ID: {response}")
-        return response
-    except Exception as e:
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        print(f"OTP email successfully sent to {to_email} via Brevo. ID: {response.json().get('messageId')}")
+        return response.json()
+    except requests.exceptions.RequestException as e:
         error_msg = str(e)
-        print(f"Failed to send email to {to_email} via Resend: {error_msg}")
-        if "You can only send testing emails to your own email address" in error_msg:
-            print(f"\n{'='*50}\nBYPASS: Resend test mode detected. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
+        if e.response is not None:
+            error_msg = f"{error_msg} - {e.response.text}"
+            
+        print(f"Failed to send email to {to_email} via Brevo: {error_msg}")
+        
+        # If there's an auth error or unverified sender error, print OTP to console so dev isn't blocked
+        if e.response is not None and e.response.status_code in [400, 401]:
+            print(f"\n{'='*50}\nBYPASS: Brevo configuration issue detected. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
             return None
+            
         raise e
