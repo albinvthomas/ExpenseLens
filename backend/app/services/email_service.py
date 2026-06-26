@@ -6,7 +6,7 @@ load_dotenv()
 
 def send_otp_email(to_email: str, otp: str):
     brevo_api_key = os.environ.get("BREVO_API_KEY")
-    sender_email = os.environ.get("SMTP_USER", "albinvthomas089@gmail.com")
+    sender_email = os.environ.get("BREVO_SENDER_EMAIL", "albinvthomas089@gmail.com")
     
     if not brevo_api_key:
         print(f"\n{'='*50}\nWARNING: BREVO_API_KEY not set. Email not sent.\nOTP for {to_email}: {otp}\n{'='*50}\n")
